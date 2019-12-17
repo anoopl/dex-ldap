@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: loginapp
+  name: loginapp
+  namespace: auth
+spec:
+  progressDeadlineSeconds: 2147483647
+  replicas: 1
+  revisionHistoryLimit: 2147483647
+  selector:
+    matchLabels:
+      app: loginapp
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: loginapp
+    spec:
+      hostAliases:
+      - ip: "10.156.0.12"
+        hostnames:
+        - "dex.k8s.example.org"
+      - ip: "10.156.0.12"
+        hostnames:
+        - "login.k8s.example.org"
+      containers:
+      - image: objectiflibre/login-app:latest
+        imagePullPolicy: Always
+        name: loginapp
+        ports:
+        - containerPort: 5555
+          name: http
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/ssl/
+          name: ca
+        - mountPath: /app/
+          name: config
+        - mountPath: /etc/loginapp/tls
+          name: tls
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: ca.pem
+            path: ca.pem
+          name: ca
+        name: ca
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: config.yaml
+            path: config.yaml
+          name: loginapp
+        name: config
+      - name: tls
+        secret:
+          defaultMode: 420
+          secretName: login.k8s.example.org.tls
+status: {}
